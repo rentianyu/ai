@@ -1,0 +1,87 @@
+name: Sync js/win/sh to R2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'js/**'
+      - 'win/**'
+      - 'sh/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write        # 需要写权限：执行结束后要强推压缩后的历史
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Upload js/sh to R2 (f.xbta.cc)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: file
+        run: |
+          set -euo pipefail
+
+          # 1) 上传 js/ sh/ 到 R2 的 ai/ 前缀（显式 content-type）
+          total=0
+          for dir in js win sh; do
+            [ -d "$dir" ] || continue
+            for f in "$dir"/*; do
+              [ -f "$f" ] || continue
+              case "$(basename "$f")" in .gitkeep) continue ;; esac
+              case "$f" in
+                *.js) ct='text/javascript; charset=utf-8' ;;
+                *.sh) ct='text/plain; charset=utf-8' ;;
+                *.md) ct='text/markdown; charset=utf-8' ;;
+                *.ps1) ct='text/plain; charset=utf-8' ;;
+                *)    ct='application/octet-stream' ;;
+              esac
+              key="ai/$f"
+              echo "upload: $key  ($ct)"
+              aws s3 cp "$f" "s3://$R2_BUCKET/$key" \
+                --endpoint-url "$R2_ENDPOINT" --region auto \
+                --content-type "$ct" --cache-control "public, max-age=300"
+              total=$((total + 1))
+            done
+          done
+          echo "uploaded $total file(s)"
+
+          # 2) 删除同步：R2 上存在、但仓库里已没有的文件一并删除
+          for dir in js win sh; do
+            [ -d "$dir" ] || continue
+            keys=$(aws s3api list-objects-v2 --bucket "$R2_BUCKET" --prefix "ai/$dir/" \
+                     --endpoint-url "$R2_ENDPOINT" --region auto \
+                     --query "Contents[].Key" --output text 2>/dev/null || true)
+            for key in $keys; do
+              [ "$key" = "None" ] && continue
+              case "$key" in */) continue ;; esac
+              rel="${key#ai/$dir/}"
+              if [ ! -f "$dir/$rel" ]; then
+                echo "delete: $key"
+                aws s3 rm "s3://$R2_BUCKET/$key" --endpoint-url "$R2_ENDPOINT" --region auto
+              fi
+            done
+          done
+          echo "sync complete -> https://f.xbta.cc/ai/..."
+
+      - name: Squash git history into a single snapshot commit
+        run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 用 orphan 分支重建一个「无父提交」的快照 → 强推覆盖 main，旧历史即被丢弃
+          git checkout --orphan __snapshot
+          git add -A
+          git commit -m "snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git branch -D main
+          git branch -m main
+          git push --force origin main
