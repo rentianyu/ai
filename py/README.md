@@ -7,6 +7,9 @@
 | **cloudflare** | Cloudflare 全功能 CLI：DNS / Email Routing / Pages / Workers / KV / D1 / R2 / Analytics | 无（仅 R2 对象操作需 boto3） | [cloudflare/](cloudflare/) |
 | **notion** | Notion 页面与块的读写：Markdown ⇄ Notion 块、整页树导出、逐块改删 | 无 | [notion/](notion/) |
 | **weather-card** | 彩云天气 → 竖版表格图 → 企业微信群机器人（单城 / 双城对比） | matplotlib（双城另需 Pillow） | [weather-card/](weather-card/) |
+| **ipban** | 按天统计 Web / SSH 探测行为，达阈值即永久封禁（nft + nginx 双层） | 无（系统需 nft / nginx） | [ipban/](ipban/) |
+| **multi-search** | 11 个搜索后端的统一 CLI：Tavily / 博查 / 知乎 / GitHub / 脚本猫 / crxsoso / UAPI / TinyFish … | 无 | [multi-search/](multi-search/) |
+| **r2** | 零依赖 R2 客户端与上传工具：用 curl 实现 SigV4，替代 boto3 | 无（需 curl ≥ 7.75） | [r2/](r2/) |
 
 ## 通用约定
 
