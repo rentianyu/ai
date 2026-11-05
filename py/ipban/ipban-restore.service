@@ -1,0 +1,12 @@
+[Unit]
+Description=ipban restore — 重启后恢复永久封禁列表
+After=nftables.service
+Requires=nftables.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'if [ -s /opt/ipban/elements.nft ]; then /usr/sbin/nft -f /opt/ipban/elements.nft; fi'
+
+[Install]
+WantedBy=multi-user.target
