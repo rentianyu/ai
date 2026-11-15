@@ -1,0 +1,12 @@
+{
+  "endpoint": "https://<ACCOUNT_ID>.r2.cloudflarestorage.com",
+  "accessKeyID": "<R2_ACCESS_KEY_ID>",
+  "secretAccessKey": "<R2_SECRET_ACCESS_KEY>",
+  "bucketName": "my-bucket",
+  "uploadPath": "img/",
+  "urlPrefix": "https://cdn.example.com",
+  "bucketDomains": {
+    "my-bucket": "https://cdn.example.com",
+    "assets": "https://assets.example.com"
+  }
+}

@@ -1,0 +1,53 @@
+#!/usr/sbin/nft -f
+#
+# nftables 片段示例 —— 给 ipban 准备 blackhole4 / blackhole6 两个集合
+#
+# 重要：不要用 `flush ruleset`！
+#   若本机跑 Docker，Docker 的规则在 ip nat / ip filter 表里；`flush ruleset`
+#   会连 Docker 规则一起清空，导致容器断网、DNS/NAT 全失效。
+#   正确做法：只操作自己的 inet filter 表 —— add table（幂等）+ flush table（只清本表）。
+#
+# 注意：flush table 会清空集合元素，所以封禁条目由 ipban-restore.service
+#       在 nftables.service 之后从 /opt/ipban/elements.nft 重新加载。
+
+add table inet filter
+flush table inet filter
+
+table inet filter {
+    set blackhole4 {
+        type ipv4_addr
+        flags interval
+        # 不写 elements：由 daily_ban.py 运行时添加，并持久化到 elements.nft
+    }
+
+    set blackhole6 {
+        type ipv6_addr
+        flags interval
+    }
+
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        iif "lo" accept
+
+        # ↓ 必须在任何 accept 之前，否则封禁不生效
+        ip  saddr @blackhole4 drop
+        ip6 saddr @blackhole6 drop
+
+        ct state established,related accept
+
+        # ↓ 按自己实际开放的端口改
+        tcp dport 22 accept
+        tcp dport 443 accept
+        # tcp dport 22201-22209 accept     # 端口段可以这样写
+        # ip protocol icmp accept
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}

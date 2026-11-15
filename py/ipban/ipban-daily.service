@@ -1,0 +1,10 @@
+[Unit]
+Description=ipban daily — 每日统计探测IP并永久封禁
+Documentation=file:/opt/ipban/README.md
+After=network.target nginx.service fail2ban.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/ipban/daily_ban.py --apply
+StandardOutput=append:/var/log/ipban/daily.log
+StandardError=append:/var/log/ipban/daily.log

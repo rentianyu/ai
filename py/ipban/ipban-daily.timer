@@ -1,0 +1,11 @@
+[Unit]
+Description=ipban daily timer — 每天 04:10 统计探测IP
+
+[Timer]
+OnCalendar=*-*-* 04:10:00
+Persistent=true
+RandomizedDelaySec=120
+Unit=ipban-daily.service
+
+[Install]
+WantedBy=timers.target
